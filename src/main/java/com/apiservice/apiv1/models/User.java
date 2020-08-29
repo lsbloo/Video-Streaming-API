@@ -83,8 +83,4 @@ public class User implements Serializable, UserDetails {
         this.password = password;
     }
 
-
-    @OneToOne(cascade = CascadeType.ALL)
-    private Relatorio relatorio;
-
 }

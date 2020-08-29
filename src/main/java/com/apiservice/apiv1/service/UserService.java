@@ -5,10 +5,7 @@ import com.apiservice.apiv1.dtos.UserDTO;
 import com.apiservice.apiv1.dtos.UserGDTO;
 import com.apiservice.apiv1.dtos.UserGGDTO;
 import com.apiservice.apiv1.interfaces.UserInterfaceCrud;
-import com.apiservice.apiv1.models.Relatorio;
 import com.apiservice.apiv1.models.User;
-import com.apiservice.apiv1.repository.RelatorioRepository;
-import com.apiservice.apiv1.repository.UnidadeRepository;
 import com.apiservice.apiv1.repository.UserRepository;
 import com.apiservice.apiv1.valitador.core.Result;
 import com.apiservice.apiv1.valitador.core.ValidatorBuilder;
@@ -29,15 +26,13 @@ public class UserService implements UserInterfaceCrud {
     private UserValidator userValidator;
 
     private UserRepository userRepository;
-    private RelatorioRepository relatorioRepository;
-    private UnidadeRepository unidadeRepository;
+
 
     @Autowired
-    public UserService(UserValidator userValidator, UserRepository userRepository, RelatorioRepository relatorioRepository, UnidadeRepository unidadeRepository){
+    public UserService(UserValidator userValidator, UserRepository userRepository){
         this.userValidator=userValidator;
         this.userRepository = userRepository;
-        this.relatorioRepository=relatorioRepository;
-        this.unidadeRepository=unidadeRepository;
+
     }
 
 
@@ -81,9 +76,7 @@ public class UserService implements UserInterfaceCrud {
             u.setName(userDTO.getUsername());
             Integer id_u = this.userRepository.save(u).getId();
 
-            Relatorio relatorio = new Relatorio();
-            Integer id  = this.relatorioRepository.save(relatorio).getId();
-            this.userRepository.updateRelatorioId(id, id_u);
+
 
             return true;
         }
@@ -111,9 +104,7 @@ public class UserService implements UserInterfaceCrud {
         try {
             User user = this.userRepository.getUserById(id_user);
             if(user!= null){
-                this.unidadeRepository.deleteDataRelatedU(user.getRelatorio().getId());
                 this.userRepository.delete(user);
-                this.relatorioRepository.delete(user.getRelatorio());
                 return true;
             }
             return false;

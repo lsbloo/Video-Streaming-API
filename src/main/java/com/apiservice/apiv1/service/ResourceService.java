@@ -1,161 +1,150 @@
 package com.apiservice.apiv1.service;
 
-import com.apiservice.apiv1.dtos.UnidadeResponseDTO;
-import com.apiservice.apiv1.models.Relatorio;
-import com.apiservice.apiv1.models.Unidade;
-import com.apiservice.apiv1.models.User;
-import com.apiservice.apiv1.repository.RelatorioRepository;
-import com.apiservice.apiv1.repository.UnidadeRepository;
+import com.apiservice.apiv1.core.Constants;
+import com.apiservice.apiv1.dtos.StreamDTO;
 import com.apiservice.apiv1.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+
+import static org.apache.tomcat.util.http.fileupload.FileUploadBase.CONTENT_LENGTH;
+import static org.apache.tomcat.util.http.fileupload.FileUploadBase.CONTENT_TYPE;
 
 @Service
 public class ResourceService {
 
-    private UnidadeRepository unidadeRepository;
-    private RelatorioRepository relatorioRepository;
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
     private UserRepository userRepository;
 
     @Autowired
-    public ResourceService(UnidadeRepository unidadeRepository, RelatorioRepository relatorioRepository, UserRepository userRepository){
-        this.unidadeRepository=unidadeRepository;
-        this.relatorioRepository=relatorioRepository;
+    public ResourceService(UserRepository userRepository){
         this.userRepository=userRepository;
     }
 
-    public Double[] getMediaPricesByCity(String city, String type_data,String user_auth){
-        User user_authe = this.userRepository.getUserByUsername(user_auth);
-        Relatorio relatorio = this.relatorioRepository.getRelatorioByUser(user_authe.getRelatorio().getId());
-        List<Unidade> unidadeList = this.unidadeRepository.getUnidadeByCity(city.toUpperCase(),type_data,relatorio.getId());
-        if(unidadeList.size() == 0) return null;
+    public ResponseEntity<StreamDTO> getStreamByName(String fileName){
 
-        List<String> valores_venda_lista = new ArrayList<>();
-        List<String> valores_compra_lista = new ArrayList<>();
-        for(Unidade u : unidadeList){
-            if(u.getValor_venda() != null) {
-                valores_venda_lista.add(u.getValor_venda());
+        return null;
+    }
+
+    public ResponseEntity<byte[]> prepareContent(String fileName, String fileType, String range) {
+        long rangeStart = 0;
+        long rangeEnd;
+        byte[] data;
+        Long fileSize;
+        String fullFileName = fileName + "." + fileType;
+        try {
+            fileSize = getFileSize(fullFileName);
+            if (range == null) {
+                return ResponseEntity.status(HttpStatus.OK)
+                        .header(Constants.CONTENT_TYPE, Constants.VIDEO_CONTENT + fileType)
+                        .header(Constants.CONTENT_LENGTH, String.valueOf(fileSize))
+                        .body(readByteRange(fullFileName, rangeStart, fileSize - 1)); // Read the object and convert it as bytes
             }
-            if(u.getValor_compra() != null) {
-                valores_compra_lista.add(u.getValor_compra());
+            String[] ranges = range.split("-");
+            rangeStart = Long.parseLong(ranges[0].substring(6));
+            if (ranges.length > 1) {
+                rangeEnd = Long.parseLong(ranges[1]);
+            } else {
+                rangeEnd = fileSize - 1;
             }
-        }
-        Double[] result = new Double[2];
-        result[0] = calculateMediaPrice(valores_venda_lista);
-        result[1] = calculateMediaPrice(valores_compra_lista);
-
-        return result;
-
-    }
-    public List<UnidadeResponseDTO> getConjuntByData(String data,String type_data ,String user_auth){
-        User user_authe = this.userRepository.getUserByUsername(user_auth);
-        Relatorio relatorio = this.relatorioRepository.getRelatorioByUser(user_authe.getRelatorio().getId());
-        List<Unidade> unidadeList = this.unidadeRepository.getUnidadeByData(data,type_data,relatorio.getId());
-        List<UnidadeResponseDTO> dtoList = new ArrayList<>();
-
-        for(Unidade u : unidadeList){
-            dtoList.add(new UnidadeResponseDTO(u.getId(),u.getType(),u.getRegiao(),u.getEstado(),
-                    u.getMunicipio(),u.getRevenda(),u.getCodigo_instalacao(),
-                    u.getProduto(),u.getData_coleta(),u.getValor_compra(),
-                    u.getValor_venda(),u.getUnidade_medida(),u.getBandeira()));
-        }
-
-        return dtoList;
-    }
-
-
-
-
-    public List<UnidadeResponseDTO> getConjuntByDistributor(String distribuidora, String type_data,String user_auth){
-        User user_authe = this.userRepository.getUserByUsername(user_auth);
-        Relatorio relatorio = this.relatorioRepository.getRelatorioByUser(user_authe.getRelatorio().getId());
-        List<Unidade> unidadeList = this.unidadeRepository.getUnidadeByDistro(distribuidora.toUpperCase(),type_data,relatorio.getId());
-        List<UnidadeResponseDTO> dtoList = new ArrayList<>();
-
-        for(Unidade u : unidadeList){
-            dtoList.add(new UnidadeResponseDTO(u.getId(),u.getType(),u.getRegiao(),u.getEstado(),
-                    u.getMunicipio(),u.getRevenda(),u.getCodigo_instalacao(),
-                    u.getProduto(),u.getData_coleta(),u.getValor_compra(),
-                    u.getValor_venda(),u.getUnidade_medida(),u.getBandeira()));
-        }
-
-        return dtoList;
-    }
-    public List<UnidadeResponseDTO> getConjuntUnidadesByInitial(String sigla, String type_data,String user_auth){
-        User user_authe = this.userRepository.getUserByUsername(user_auth);
-        Relatorio relatorio = this.relatorioRepository.getRelatorioByUser(user_authe.getRelatorio().getId());
-        List<Unidade> unidadeList = this.unidadeRepository.getUnidadeBySigla(sigla.toUpperCase(),type_data,relatorio.getId());
-        List<UnidadeResponseDTO> dtoList = new ArrayList<>();
-        for(Unidade u : unidadeList){
-            dtoList.add(new UnidadeResponseDTO(u.getId(),u.getType(),u.getRegiao(),u.getEstado(),
-                    u.getMunicipio(),u.getRevenda(),u.getCodigo_instalacao(),
-                    u.getProduto(),u.getData_coleta(),u.getValor_compra(),
-                    u.getValor_venda(),u.getUnidade_medida(),u.getBandeira()));
-        }
-
-        return dtoList;
-
-    }
-
-
-    public Double getMediaPriceByCity(String name_city,String type_data ,String user_auth){
-        User user_authe = this.userRepository.getUserByUsername(user_auth);
-        Relatorio relatorio = this.relatorioRepository.getRelatorioByUser(user_authe.getRelatorio().getId());
-
-        List<String> stringList = new ArrayList<>();
-        List<Unidade> unidadeList = this.unidadeRepository.getUnidades(relatorio.getId(),type_data,name_city.toUpperCase());
-        for(Unidade unity : unidadeList){
-            if(unity.getValor_venda() != null) {
-                stringList.add(unity.getValor_venda());
+            if (fileSize < rangeEnd) {
+                rangeEnd = fileSize - 1;
             }
+            data = readByteRange(fullFileName, rangeStart, rangeEnd);
+        } catch (IOException e) {
+            logger.error("Exception while reading the file {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return calculateMediaPrice(stringList);
+        String contentLength = String.valueOf((rangeEnd - rangeStart) + 1);
+        return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                .header(CONTENT_TYPE, Constants.VIDEO_CONTENT + fileType)
+                .header(Constants.ACCEPT_RANGES, Constants.BYTES)
+                .header(CONTENT_LENGTH, contentLength)
+                .header(Constants.CONTENT_RANGE, Constants.BYTES + " " + rangeStart + "-" + rangeEnd + "/" + fileSize)
+                .body(data);
+
+
     }
 
-
-    public Double calculateMediaPrice(List<String > stringList){
-        if(stringList.size() == 0) return 0.0;
-
-        List<Double> cc = new ArrayList<>();
-        for(String x : stringList){
-            String[] y = x.split(" ");
-            String d = y[0].replaceAll(",",".");
-            cc.add(Double.valueOf(d));
-        }
-        Double somatorio=0.0;
-        for(Double item : cc){
-            somatorio += item;
-        }
-        return somatorio / cc.size();
-    }
-
-    public Double[] getMediaPricesByFlag(String flag, String typeData , String user_auth){
-        User user_authe = this.userRepository.getUserByUsername(user_auth);
-        Relatorio relatorio = this.relatorioRepository.getRelatorioByUser(user_authe.getRelatorio().getId());
-        List<Unidade> unidadeList = this.unidadeRepository.getUnidadeByFlag(flag.toUpperCase(),typeData,relatorio.getId());
-        if(unidadeList.size() == 0) return null;
-
-        List<String> valores_venda_lista = new ArrayList<>();
-        List<String> valores_compra_lista = new ArrayList<>();
-        for(Unidade u : unidadeList){
-            if(u.getValor_venda() != null) {
-                valores_venda_lista.add(u.getValor_venda());
+    /**
+     * ready file byte by byte.
+     *
+     * @param filename String.
+     * @param start    long.
+     * @param end      long.
+     * @return byte array.
+     * @throws IOException exception.
+     */
+    public byte[] readByteRange(String filename, long start, long end) throws IOException {
+        Path path = Paths.get(getFilePath(), filename);
+        try (InputStream inputStream = (Files.newInputStream(path));
+             ByteArrayOutputStream bufferedOutputStream = new ByteArrayOutputStream()) {
+            byte[] data = new byte[Constants.BYTE_RANGE];
+            int nRead;
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                bufferedOutputStream.write(data, 0, nRead);
             }
-            if(u.getValor_compra() != null) {
-                valores_compra_lista.add(u.getValor_compra());
-            }
+            bufferedOutputStream.flush();
+            byte[] result = new byte[(int) (end - start) + 1];
+            System.arraycopy(bufferedOutputStream.toByteArray(), (int) start, result, 0, result.length);
+            return result;
         }
-        Double[] result = new Double[2];
-        result[0] = calculateMediaPrice(valores_venda_lista);
-        result[1] = calculateMediaPrice(valores_compra_lista);
-
-        return result;
-
     }
+
+    /**
+     * Get the filePath.
+     *
+     * @return String.
+     */
+    private String getFilePath() {
+        URL url = this.getClass().getResource(Constants.VIDEO);
+        return new File(url.getFile()).getAbsolutePath();
+    }
+
+    /**
+     * Content length.
+     *
+     * @param fileName String.
+     * @return Long.
+     */
+    public Long getFileSize(String fileName) {
+        return Optional.ofNullable(fileName)
+                .map(file -> Paths.get(getFilePath(), file))
+                .map(this::sizeFromFile)
+                .orElse(0L);
+    }
+
+    /**
+     * Getting the size from the path.
+     *
+     * @param path Path.
+     * @return Long.
+     */
+    private Long sizeFromFile(Path path) {
+        try {
+            return Files.size(path);
+        } catch (IOException ioException) {
+            logger.error("Error while getting the file size", ioException);
+        }
+        return 0L;
+    }
+
+
 }

@@ -28,7 +28,7 @@ public class SwaggerConfigurator extends WebMvcConfigurationSupport {
 
         return new ApiInfoBuilder()
                 .title("API-SERVICE")
-                .description("\"API-SERVICE DESAFIO INDRA\"")
+                .description("\"API-SERVICE VIDEO STREAMING\"")
                 .version("1.0.0")
                 .license("Apache License Version 2.0")
                 .licenseUrl("https://www.apache.org/licenses/LICENSE-2.0\"")

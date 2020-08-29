@@ -4,30 +4,22 @@ package com.apiservice.apiv1.controller;
 import com.apiservice.apiv1.context.ContextUtil;
 import com.apiservice.apiv1.dtos.ResponseUser;
 import com.apiservice.apiv1.models.CsvReader;
-import com.apiservice.apiv1.models.Unidade;
 import com.apiservice.apiv1.service.UserImportService;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
-import com.opencsv.bean.CsvToBean;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -99,7 +91,8 @@ public class ImportController {
                 System.err.println(list_reader.get(0).toString());
                 Integer size = list_reader.size();
                 ResponseUser responseUser = new ResponseUser("success import", "Quantity imported: " + size + " lines");
-                ImportDataset(list_reader);
+
+                //ImportDataset(list_reader);
                 return ResponseEntity.status(HttpStatus.ACCEPTED).body(responseUser);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -109,6 +102,7 @@ public class ImportController {
     }
 
 
+    /**
     public synchronized void ImportDataset(List<CsvReader> list_reader){
         List<Unidade> unidadeList = new ArrayList<>();
         for (CsvReader reader : list_reader){
@@ -117,6 +111,7 @@ public class ImportController {
 
         this.userImportService.importDataSet(unidadeList, ContextUtil.getAuthenticationUsername());
     }
+     */
 
     public static File multiParFileToFile(MultipartFile archive) throws IOException {
         File convFile = new File(System.getProperty("java.io.tmpdir")+"/"+archive.getOriginalFilename());
