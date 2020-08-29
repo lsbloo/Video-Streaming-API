@@ -59,6 +59,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.cors().and().csrf().disable()
                 .headers().frameOptions().sameOrigin().disable().authorizeRequests().
+                antMatchers(HttpMethod.GET,"/").permitAll().
                 antMatchers(HttpMethod.GET,"/api/v1/resource/video/stream/**").permitAll().
                 antMatchers(HttpMethod.POST,"/api/v1/login").permitAll().
                 antMatchers(HttpMethod.POST,"/api/v1/user/").permitAll().
